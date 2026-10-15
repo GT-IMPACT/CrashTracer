@@ -65,3 +65,74 @@ tasks.assemble { dependsOn(analyzerJar) }
 tasks.test {
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(8)) })
 }
+
+// IDEA's Gradle runClient launch gets the manual test fixture automatically.
+// Explicit properties still allow clean launches and tests without BetterCrashes.
+val clientLaunchRequested = gradle.startParameter.taskNames.any {
+    it.substringAfterLast(':') in setOf("runClient", "runObfClient")
+}
+val clientSmokeEnabled = providers.gradleProperty("clientSmoke").map(String::toBoolean).getOrElse(clientLaunchRequested)
+if (clientSmokeEnabled) {
+    if (providers.gradleProperty("clientSmokeBetterCrashes").map(String::toBoolean).getOrElse(true)) {
+        dependencies.add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:BetterCrashes:1.4.7-GTNH:dev")
+    }
+    val clientSmoke = sourceSets.create("clientSmoke") {
+        compileClasspath += sourceSets.main.get().compileClasspath + sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    }
+    val clientSmokeJar = tasks.register<Jar>("clientSmokeJar") {
+        from(clientSmoke.output)
+        archiveClassifier.set("client-smoke-fixture")
+    }
+    val reobfClientSmoke = tasks.named<ReobfuscatedJar>("reobfClientSmokeJar") {
+        archiveClassifier.set("client-smoke-fixture-reobf")
+    }
+    tasks.named<RunMinecraftTask>("runClient") {
+        dependsOn(clientSmokeJar)
+        classpath(clientSmokeJar)
+    }
+    tasks.named<RunMinecraftTask>("runObfClient") { dependsOn(reobfClientSmoke) }
+    tasks.named<Copy>("prepareObfModsFolder") { from(reobfClientSmoke) }
+}
+
+// Isolated, opt-in server fixture. No fixture classes or dependencies enter the release JAR.
+if (providers.gradleProperty("serverSmokeScenario").isPresent) {
+    if (providers.gradleProperty("serverSmokeBetterCrashes").orNull == "true") {
+        dependencies.add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:BetterCrashes:1.4.7-GTNH:dev")
+    }
+    val smoke = sourceSets.create("serverSmoke") {
+        compileClasspath += sourceSets.main.get().compileClasspath + sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    }
+    val smokeJar = tasks.register<Jar>("serverSmokeJar") {
+        from(smoke.output)
+        archiveClassifier.set("server-smoke-fixture")
+    }
+    tasks.named<RunMinecraftTask>("runServer") {
+        dependsOn(smokeJar)
+        classpath(smokeJar)
+        systemProperty("crashtracer.smoke", providers.gradleProperty("serverSmokeScenario").get())
+        systemProperty("mixin.debug.verbose", "true")
+        if (providers.gradleProperty("serverSmokeScenario").get() == "oom") {
+            minHeapSize = "256m"
+            maxHeapSize = "256m"
+        }
+        if (providers.gradleProperty("serverSmokeScenario").get() == "native") {
+            jvmArgs("-XX:-ShowMessageBoxOnError", "-XX:-CreateMinidumpOnCrash", "-XX:ErrorFile=hs_err_pid%p.log")
+        }
+        if (providers.gradleProperty("serverSmokeScenario").get().startsWith("mixin") || providers.gradleProperty("serverSmokeScenario").get() == "early-fml") {
+            systemProperty("fml.coreMods.load", "space.impact.crashtracer.mixinplugin.TracerEarlyMixins,space.impact.crashtracer.smoke.mixinplugin.SmokeEarlyMixins")
+        }
+    }
+    val reobfSmoke = tasks.named<ReobfuscatedJar>("reobfServerSmokeJar") {
+        archiveClassifier.set("server-smoke-fixture-reobf")
+    }
+    tasks.named<RunMinecraftTask>("runObfServer") {
+        dependsOn(reobfSmoke)
+        systemProperty("crashtracer.smoke", providers.gradleProperty("serverSmokeScenario").get())
+        systemProperty("mixin.debug.verbose", "true")
+    }
+    tasks.named<Copy>("prepareObfModsFolder") {
+        from(reobfSmoke)
+    }
+}
