@@ -40,6 +40,7 @@ public final class ServerSmokeMod {
         if (!started || event.phase != TickEvent.Phase.START) return;
         ticks++;
         if (ticks == 40) {
+            if ("interaction".equals(scenario)) PacketContextSmoke.run();
             if ("logs".equals(scenario)) {
                 org.apache.logging.log4j.LogManager.getLogger("CrashTracerSmoke").warn("CRASHTRACER_SMOKE_LOG Authorization: Bearer fake-smoke-token");
                 org.apache.logging.log4j.LogManager.getLogger("net.minecraft.crashtracer.smoke").error("CRASHTRACER_SMOKE_LOG password=fake-smoke-password");
