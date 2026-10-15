@@ -1,5 +1,5 @@
 @file:Suppress("unused")
 
-package space.impact.modid.proxy
+package space.impact.crashtracer.proxy
 
 class ClientProxy : CommonProxy()

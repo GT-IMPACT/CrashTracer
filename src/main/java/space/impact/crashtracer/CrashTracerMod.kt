@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package space.impact.modid
+package space.impact.crashtracer
 
 import cpw.mods.fml.common.FMLCommonHandler
 import cpw.mods.fml.common.Mod
@@ -13,8 +13,8 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent
 import cpw.mods.fml.common.event.FMLServerStoppedEvent
 import cpw.mods.fml.common.event.FMLServerStoppingEvent
 import cpw.mods.fml.relauncher.Side
-import space.impact.modid.proxy.ClientProxy
-import space.impact.modid.proxy.CommonProxy
+import space.impact.crashtracer.proxy.ClientProxy
+import space.impact.crashtracer.proxy.CommonProxy
 
 @Mod(
     modid = BuildConfig.MODID,
@@ -22,9 +22,9 @@ import space.impact.modid.proxy.CommonProxy
     name = BuildConfig.MODNAME,
     modLanguageAdapter = "net.shadowfacts.forgelin.KotlinAdapter",
     acceptedMinecraftVersions = "[1.7.10]",
-    dependencies = "required-after:forgelin;",
+    dependencies = "required-after:forgelin;after:bettercrashes;",
 )
-object Mod {
+object CrashTracerMod {
 
     val proxy = when (FMLCommonHandler.instance().side) {
         Side.CLIENT -> ClientProxy()

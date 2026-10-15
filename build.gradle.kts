@@ -4,12 +4,16 @@ plugins {
 }
 
 impactMod {
-    modId.set("modid")
-    modName.set("Mod Name")
-    modGroup.set("space.impact.modid")
+    modId.set("crashtracer")
+    modName.set("Crash Tracer")
+    modGroup.set("space.impact.crashtracer")
     mavenGroup.set("space.impact")
     mavenUrl.set("https://maven.accident.space/repository/maven-releases/")
     injectGenerics.set(true)
+    usesMixins.set(true)
+    coreModClass.set("mixinplugin.TracerEarlyMixins")
+    mixinConfigs.set(listOf("mixins.crashtracer.json"))
+    mixinRefmap.set("mixins.crashtracer.refmap.json")
 }
 
 buildConfig {
@@ -23,4 +27,7 @@ buildConfig {
 
 dependencies {
     api(libs.impact.forgelin)
+    compileOnly("com.github.GTNewHorizons:BetterCrashes:1.4.7-GTNH:dev") {
+        isTransitive = false
+    }
 }

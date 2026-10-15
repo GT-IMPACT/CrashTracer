@@ -1,4 +1,4 @@
-package space.impact.modid.proxy
+package space.impact.crashtracer.proxy
 
 import cpw.mods.fml.common.event.FMLInitializationEvent
 import cpw.mods.fml.common.event.FMLPostInitializationEvent

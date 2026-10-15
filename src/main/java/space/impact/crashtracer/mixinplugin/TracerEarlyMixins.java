@@ -1,0 +1,49 @@
+package space.impact.crashtracer.mixinplugin;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.gtnewhorizon.gtnhmixins.IEarlyMixinLoader;
+import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
+
+/** Keep early bootstrap independent of Kotlin and optional mod classes. */
+@IFMLLoadingPlugin.MCVersion("1.7.10")
+@IFMLLoadingPlugin.TransformerExclusions("space.impact.crashtracer.mixinplugin")
+public final class TracerEarlyMixins implements IFMLLoadingPlugin, IEarlyMixinLoader {
+
+    @Override
+    public String getMixinConfig() {
+        return "mixins.crashtracer.early.json";
+    }
+
+    @Override
+    public List<String> getMixins(Set<String> loadedCoreMods) {
+        // Register Java mixins relative to space.impact.crashtracer.mixins.early here.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public String[] getASMTransformerClass() {
+        return new String[0];
+    }
+
+    @Override
+    public String getModContainerClass() {
+        return null;
+    }
+
+    @Override
+    public String getSetupClass() {
+        return null;
+    }
+
+    @Override
+    public void injectData(Map<String, Object> data) {}
+
+    @Override
+    public String getAccessTransformerClass() {
+        return null;
+    }
+}
