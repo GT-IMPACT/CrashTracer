@@ -9,6 +9,7 @@
 /bin/
 /config/
 /crash-reports/
+/crash-tracer/
 /logs/
 options.txt
 /saves/

@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "minVersion": "0.8.5-GTNH",
+  "package": "space.impact.crashtracer.mixins.early.forge",
+  "target": "@env(PREINIT)",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": ["LoadControllerMixin"],
+  "client": [],
+  "server": []
+}

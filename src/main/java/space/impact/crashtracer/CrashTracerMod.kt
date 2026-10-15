@@ -15,6 +15,7 @@ import cpw.mods.fml.common.event.FMLServerStoppingEvent
 import cpw.mods.fml.relauncher.Side
 import space.impact.crashtracer.proxy.ClientProxy
 import space.impact.crashtracer.proxy.CommonProxy
+import space.impact.crashtracer.diagnostics.TracerRuntime
 
 @Mod(
     modid = BuildConfig.MODID,
@@ -33,41 +34,50 @@ object CrashTracerMod {
 
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
+        TracerRuntime.phase("PRE_INITIALIZATION")
         proxy.preInit(event)
     }
 
     @Mod.EventHandler
     fun init(event: FMLInitializationEvent) {
+        TracerRuntime.phase("INITIALIZATION")
         proxy.init(event)
     }
 
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
+        TracerRuntime.phase("POST_INITIALIZATION")
         proxy.postInit(event)
+        TracerRuntime.analyzePending()
     }
 
     @Mod.EventHandler
     fun serverAboutToStart(event: FMLServerAboutToStartEvent) {
+        TracerRuntime.phase("SERVER_ABOUT_TO_START")
         proxy.serverAboutToStart(event)
     }
 
     @Mod.EventHandler
     fun serverStarting(event: FMLServerStartingEvent) {
+        TracerRuntime.phase("SERVER_STARTING")
         proxy.serverStarting(event)
     }
 
     @Mod.EventHandler
     fun serverStarted(event: FMLServerStartedEvent) {
+        TracerRuntime.phase("SERVER_STARTED")
         proxy.serverStarted(event)
     }
 
     @Mod.EventHandler
     fun serverStopping(event: FMLServerStoppingEvent) {
+        TracerRuntime.phase("SERVER_STOPPING")
         proxy.serverStopping(event)
     }
 
     @Mod.EventHandler
     fun serverStopped(event: FMLServerStoppedEvent) {
+        TracerRuntime.phase("SERVER_STOPPED")
         proxy.serverStopped(event)
     }
 }

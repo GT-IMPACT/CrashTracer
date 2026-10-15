@@ -1,6 +1,15 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.gtnewhorizons.retrofuturagradle.minecraft.RunMinecraftTask
+import com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar
+
 plugins {
     id("minecraft-setup")
     id("publish-setup")
+}
+
+val analyzerRuntime = configurations.create("analyzerRuntime") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
 }
 
 impactMod {
@@ -12,7 +21,7 @@ impactMod {
     injectGenerics.set(true)
     usesMixins.set(true)
     coreModClass.set("mixinplugin.TracerEarlyMixins")
-    mixinConfigs.set(listOf("mixins.crashtracer.json"))
+    mixinConfigs.set(listOf("mixins.crashtracer.fml.json", "mixins.crashtracer.json"))
     mixinRefmap.set("mixins.crashtracer.refmap.json")
 }
 
@@ -26,8 +35,33 @@ buildConfig {
 }
 
 dependencies {
+    analyzerRuntime(libs.kotlin.stdlib.core)
+    analyzerRuntime("com.google.code.gson:gson:2.13.2")
     api(libs.impact.forgelin)
+    testImplementation(libs.test.junit)
     compileOnly("com.github.GTNewHorizons:BetterCrashes:1.4.7-GTNH:dev") {
         isTransitive = false
     }
+}
+
+val analyzerJar = tasks.register<ShadowJar>("analyzerJar") {
+    group = "build"
+    description = "Build the standalone local analyzer (Java 8, no Minecraft runtime)."
+    archiveBaseName.set("crashtracer-analyzer")
+    archiveClassifier.set("standalone")
+    from(sourceSets.main.get().output) {
+        include("space/impact/crashtracer/cli/**", "space/impact/crashtracer/diagnostics/**")
+        exclude("**/TracerRuntime*", "**/ContextCollector*", "**/ForensicsCollector*", "**/RuntimeEvents*", "**/Watchdog*", "**/BetterCrashesIntegration*", "**/LogCapture*")
+    }
+    configurations = listOf(analyzerRuntime)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    manifest.attributes["Main-Class"] = "space.impact.crashtracer.cli.AnalyzerMain"
+    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    exclude("module-info.class", "META-INF/versions/**/module-info.class")
+}
+
+tasks.assemble { dependsOn(analyzerJar) }
+
+tasks.test {
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(8)) })
 }

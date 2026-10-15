@@ -2,6 +2,7 @@ package space.impact.crashtracer.mixinplugin
 
 import com.gtnewhorizon.gtnhmixins.ILateMixinLoader
 import com.gtnewhorizon.gtnhmixins.LateMixin
+import cpw.mods.fml.relauncher.FMLLaunchHandler
 
 @LateMixin
 class TracerLateMixins : ILateMixinLoader {
@@ -9,8 +10,7 @@ class TracerLateMixins : ILateMixinLoader {
     override fun getMixinConfig(): String = "mixins.crashtracer.late.json"
 
     override fun getMixins(loadedMods: MutableSet<String>): MutableList<String> {
-        // Add optional mod mixins only after checking their IDs in loadedMods.
-        // Never reference BetterCrashes classes from this loader directly.
-        return mutableListOf()
+        return if (FMLLaunchHandler.side().isClient && "bettercrashes" in loadedMods)
+            mutableListOf("bettercrashes.CrashUtilsMixin") else mutableListOf()
     }
 }
