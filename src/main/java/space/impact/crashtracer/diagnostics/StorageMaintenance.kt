@@ -19,7 +19,7 @@ object StorageMaintenance {
             it.isDirectory && !Files.isSymbolicLink(it.toPath()) &&
                 it.name.matches(Regex("(?:session-)?[a-zA-Z0-9_-]+")) &&
                 (if (parent.name == "sessions") File(it, "session.json").isFile
-                    else File(it, "report.json").isFile || File(it, "early.json").isFile || File(it, "emergency.txt").isFile)
+                    else SupportBundle.hasReport(it) || File(it, "emergency.txt").isFile)
         }?.sortedByDescending { it.lastModified() } ?: return
         val kept = candidates.take(limit).toSet() + listOfNotNull(protected)
         for (directory in candidates.filter { it !in kept }) {

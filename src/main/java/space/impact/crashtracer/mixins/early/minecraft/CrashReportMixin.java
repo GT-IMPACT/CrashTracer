@@ -5,10 +5,20 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import space.impact.crashtracer.bootstrap.TracerBootstrap;
 
 @Mixin(CrashReport.class)
 public abstract class CrashReportMixin {
+    @Inject(method = "saveToFile", at = @At("RETURN"), require = 0)
+    private void crashtracer$link(java.io.File file, CallbackInfoReturnable<Boolean> ci) {
+        if (Boolean.TRUE.equals(ci.getReturnValue())) {
+            CrashReport report = (CrashReport) (Object) this;
+            TracerBootstrap.linkMinecraftReport(report.getCrashCause(), file);
+            try { space.impact.crashtracer.diagnostics.TracerRuntime.requestSupport(report.getCrashCause()); }
+            catch (Throwable unavailable) { /* Bootstrap capture remains usable before Kotlin initializes. */ }
+        }
+    }
     // Constructor RETURN is safe for Mixin; existing crash handlers retain their normal behavior.
     @Inject(method = "<init>", at = @At("RETURN"))
     private void crashtracer$capture(String description, Throwable error, CallbackInfo ci) {

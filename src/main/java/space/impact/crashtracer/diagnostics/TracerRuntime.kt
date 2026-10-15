@@ -81,7 +81,7 @@ object TracerRuntime : CrashCollector {
         val limits = mutableListOf<String>()
         val original = context ?: ContextSnapshot(TracerBootstrap.getPhase(), emptyList(), emptyList(), emptyMap(), emptyList())
         val snapshot = original.copy(phase = TracerBootstrap.getPhase(), environment = original.environment.filterKeys { !it.startsWith("world.") } +
-            RuntimeEvents.world.mapKeys { "world.${it.key}" })
+            RuntimeEvents.world.mapKeys { "world.${it.key}" } + ContextCollector.language())
         if (config.experimentalTransformers) limits.add("ASM tracing starts at FML preInit. Name/Mixin transformers, registry dispatchers and implementations without inspectable bytecode retain their identity and are not wrapped; early or later-registered transforms may be absent.")
         val exceptions = ExceptionCollector.collect(error, config.maxExceptionNodes, config.maxFramesPerException,
             (config.maxReportBytes / 8).toInt())
@@ -107,8 +107,10 @@ object TracerRuntime : CrashCollector {
                 "BetterCrashes may have deobfuscated the Throwable before capture.",
                 "Exception graph truncated: ${exceptions.truncated}"),
             forensics = forensic, threads = threads,
-            memory = mapOf("heapMax" to runtime.maxMemory(), "heapCommitted" to runtime.totalMemory(), "heapFree" to runtime.freeMemory()))
+            memory = mapOf("heapMax" to runtime.maxMemory(), "heapCommitted" to runtime.totalMemory(), "heapFree" to runtime.freeMemory()),
+            interaction = try { InteractionCapture.forError(error) } catch (_: Throwable) { null })
         LocalReportWriter(config.maxReportBytes).write(directory, report)
+        SupportBundle.pending(directory, report)
         // The immutable record already exists. Enrichment happens on the worker after the crash handler returns.
         background.schedule({ analyzeDirectory(directory) }, 2, TimeUnit.SECONDS)
     }
@@ -126,6 +128,20 @@ object TracerRuntime : CrashCollector {
         } catch (failure: Throwable) {
             TracerBootstrap.event("ANALYSIS", directory.name, failure.javaClass.name, "FAILED")
         }
+    }
+
+    @JvmStatic fun requestSupport(error: Throwable) {
+        try {
+            val directory = TracerBootstrap.incidentFor(error) ?: return
+            background.execute {
+                try {
+                    val root = directory.parentFile.parentFile
+                    val settings = if (initialized) config else TracerConfig.load(root)
+                    PendingAnalysis.process(directory, settings, File(root, "mappings/1.7.10"))
+                    SupportBundle.refresh(directory, settings)
+                } catch (failure: Throwable) { TracerBootstrap.event("ARCHIVE", directory.name, failure.javaClass.name, "FAILED") }
+            }
+        } catch (_: Throwable) { }
     }
 
     fun analyzePending() {

@@ -16,6 +16,18 @@ class AnalysisEngine(private val mappings: LocalMappings) {
         }
         val fingerprint = MessageDigest.getInstance("SHA-256").digest(stable.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
         val findings = mutableListOf<String>()
+        if (InteractionDetails.isPacketFailure(report)) {
+            findings.add(if (InteractionDetails.isRightClick(report)) "Server-side failure while processing a right-click interaction packet." else "Server-side failure while processing a player packet.")
+            report.interaction?.let { interaction ->
+                findings.add("Packet: ${interaction.packetClass}; action=${interaction.action ?: "unknown"}. Inspect interaction.txt for item and container snapshots. Item/container presence is context, not proof of ownership of the failure.")
+                val before = interaction.before?.container
+                val after = interaction.atFailure?.container
+                if (before != null && after != null && (before.type != after.type || before.windowId != after.windowId))
+                    findings.add("Active container changed during packet processing: ${before.type} (window ${before.windowId}) -> ${after.type} (window ${after.windowId}).")
+                if (after != null && after.slotScanComplete && after.matchingSlotNumber == null)
+                    findings.add("The active container had no slot matching selected player inventory index ${after.selectedInventorySlot}. This can be intentional for a sub-GUI; it does not prove a null-slot dereference caused this exception.")
+            } ?: findings.add("This older report has no packet-time item/container snapshot; the triggering item cannot be recovered from the stack alone.")
+        }
         if (report.threads.any { it.deadlocked }) findings.add("JVM reported a deadlock. Inspect threads.txt for owners and locks.")
         report.threads.filter { it.lock != null && it.lockOwnerId != null && it.lockOwnerAlive == false }.take(16).forEach {
             findings.add("Thread ${it.name} (${it.id}) waits on ${it.lock}, owned by ${it.lockOwner} (${it.lockOwnerId}), which was no longer live when sampled. A terminated owner may leave a lock held after a crash; this is not proof of a JVM deadlock cycle. Restart may be required; Crash Tracer does not release other mods' locks.")

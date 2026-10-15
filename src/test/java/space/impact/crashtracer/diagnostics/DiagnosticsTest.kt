@@ -73,10 +73,10 @@ class DiagnosticsTest {
         assertEquals(0, report.exceptions.rootCause)
         assertTrue(File(directory, "report.txt").readText().contains("IllegalStateException"))
         PendingAnalysis.process(reports)
-        val analysis = JsonParser().parse(File(directory, "analysis.json").readText()).asJsonObject
+        val analysis = JsonParser().parse(SupportBundle.readIncident(directory, "analysis.json", 16L * 1024 * 1024)).asJsonObject
         assertEquals("example", analysis.getAsJsonArray("suspects")[0].asJsonObject.get("modId").asString)
-        assertEquals(original, File(directory, "report.json").readText())
-        assertFalse(File(directory, "stacktrace.txt").readText().isEmpty())
+        assertEquals(original, SupportBundle.readIncident(directory, "report.json", 16L * 1024 * 1024))
+        assertFalse(SupportBundle.readIncident(directory, "stacktrace.txt", 16L * 1024 * 1024).isNullOrEmpty())
     }
 
     @Test fun `corrupt pending report does not stop processing`() {

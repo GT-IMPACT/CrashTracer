@@ -9,6 +9,13 @@ import space.impact.crashtracer.bootstrap.TracerBootstrap;
 
 @Mixin(targets = "vfyjxf.bettercrashes.utils.CrashUtils", remap = false)
 public abstract class CrashUtilsMixin {
+    @Inject(method = "outputReport", at = @At("RETURN"), require = 0)
+    private static void crashtracer$archive(CrashReport report, CallbackInfo ci) {
+        try {
+            TracerBootstrap.linkMinecraftReport(report.getCrashCause(), report.getFile());
+            space.impact.crashtracer.diagnostics.TracerRuntime.requestSupport(report.getCrashCause());
+        } catch (Throwable ignored) {}
+    }
     @Inject(method = "outputReport", at = @At("HEAD"), require = 0)
     private static void crashtracer$output(CrashReport report, CallbackInfo ci) {
         try {

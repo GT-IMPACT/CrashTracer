@@ -33,6 +33,19 @@ data class ThreadSnapshot(val id: Long, val name: String, val state: String, val
     val lockOwner: String?, val deadlocked: Boolean, val frames: List<String>,
     val lockOwnerId: Long? = null, val lockOwnerAlive: Boolean? = null)
 
+data class ItemSnapshot(val registryName: String?, val itemClass: String,
+    val metadata: Int, val count: Int, val hasNbt: Boolean)
+
+data class ContainerSnapshot(val type: String, val windowId: Int, val slotCount: Int,
+    val selectedInventorySlot: Int, val matchingSlotNumber: Int?, val slotScanComplete: Boolean)
+
+data class PlayerInteractionState(val dimension: Int, val sneaking: Boolean,
+    val heldItem: ItemSnapshot?, val container: ContainerSnapshot?)
+
+data class InteractionSnapshot(val capturedAt: Long, val packetClass: String, val action: String?,
+    val packetFields: Map<String, String>, val packetItem: ItemSnapshot?,
+    val before: PlayerInteractionState?, val atFailure: PlayerInteractionState?, val limitations: List<String>)
+
 data class IncidentReport(
     val schemaVersion: Int = 1,
     val incidentId: String,
@@ -48,4 +61,5 @@ data class IncidentReport(
     val forensics: ForensicsSnapshot? = null,
     val threads: List<ThreadSnapshot> = emptyList(),
     val memory: Map<String, Long> = emptyMap(),
+    val interaction: InteractionSnapshot? = null,
 )

@@ -13,19 +13,23 @@ object PendingAnalysis {
         force: Boolean = false): Map<String, List<String>> {
         val groups = linkedMapOf<String, MutableList<String>>()
         val engine = AnalysisEngine(LocalMappings(mappingsDirectory))
-        val directories = if (File(reports, "report.json").isFile || File(reports, "early.json").isFile) listOf(reports)
+        val directories = if (SupportBundle.hasReport(reports)) listOf(reports)
             else reports.listFiles()?.filter { it.isDirectory && !Files.isSymbolicLink(it.toPath()) }
                 ?.sortedByDescending { it.name }.orEmpty()
         var attempts = 0
         for (directory in directories) {
             try {
-                val existing = File(directory, "analysis.json")
-                if (!force && existing.isFile && existing.length() < config.maxReportBytes) {
+                val existing = if (!force) SupportBundle.readIncident(directory, "analysis.json", config.maxReportBytes) else null
+                if (existing != null) {
                     val fingerprint = try {
-                        existing.reader(Charsets.UTF_8).use { JsonParser().parse(it).asJsonObject.get("fingerprint")?.asString }
+                        JsonParser().parse(existing).asJsonObject.get("fingerprint")?.asString
                     } catch (_: Exception) { null }
                     if (fingerprint != null) {
                         groups.getOrPut(fingerprint) { mutableListOf() }.add(directory.name)
+                        if (SupportBundle.needsPacking(directory) && attempts < config.maxPendingReports) {
+                            attempts++
+                            try { SupportBundle.refresh(directory, config) } catch (_: Exception) { }
+                        }
                         continue
                     }
                 }
@@ -62,15 +66,17 @@ object PendingAnalysis {
                                 forensics = if (early.sessionId.matches(Regex("session-[a-zA-Z0-9-]+"))) recoverEvents(session, early.capturedAt, config) else null)
                             LocalReportWriter(config.maxReportBytes).write(directory, report)
                         }
-                        val mixinFile = File(directory, "runtime-mixins.json")
-                        if (mixinFile.isFile && !Files.isSymbolicLink(mixinFile.toPath()) && mixinFile.length() < config.maxReportBytes) {
-                            val extra = mixinFile.reader(Charsets.UTF_8).use { JsonFiles.gson.fromJson(it, ForensicsSnapshot::class.java) }
+                        val mixinData = SupportBundle.readIncident(directory, "runtime-mixins.json", config.maxReportBytes)
+                        if (mixinData != null) {
+                            val extra = JsonFiles.gson.fromJson(mixinData, ForensicsSnapshot::class.java)
                             val previous = report.forensics
-                            report = report.copy(forensics = ForensicsSnapshot(previous?.mixins.orEmpty() + extra.mixins,
-                                previous?.events.orEmpty(), previous?.limitations.orEmpty() + extra.limitations))
+                            report = report.copy(forensics = ForensicsSnapshot((previous?.mixins.orEmpty() + extra.mixins).distinct(),
+                                previous?.events.orEmpty(), (previous?.limitations.orEmpty() + extra.limitations).distinct()))
                         }
                         val result = engine.analyze(directory, report, config.maxReportBytes)
                         groups.getOrPut(result.fingerprint) { mutableListOf() }.add(directory.name)
+                        try { SupportBundle.write(directory, report, result, config) }
+                        catch (failure: Exception) { System.err.println("Crash Tracer: support archive unavailable for ${directory.name}: ${failure.javaClass.simpleName}") }
                     }
                 }
             } catch (error: Exception) {
@@ -103,8 +109,8 @@ object PendingAnalysis {
     }
 
     fun readReport(file: File, limit: Long): IncidentReport? {
-        if (!file.isFile || Files.isSymbolicLink(file.toPath()) || file.length() > limit) return null
-        val json = file.reader(Charsets.UTF_8).use { JsonParser().parse(it).asJsonObject }
+        val data = SupportBundle.readIncident(file.parentFile, file.name, limit) ?: return null
+        val json = JsonParser().parse(data).asJsonObject
         if (json.get("schemaVersion")?.asInt != 1) throw UnsupportedOperationException("Unsupported report schema")
         if (!json.has("threads")) json.add("threads", com.google.gson.JsonArray())
         if (!json.has("memory")) json.add("memory", com.google.gson.JsonObject())

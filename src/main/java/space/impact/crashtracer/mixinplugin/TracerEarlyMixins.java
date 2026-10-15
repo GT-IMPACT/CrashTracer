@@ -27,7 +27,7 @@ public final class TracerEarlyMixins implements IFMLLoadingPlugin, IEarlyMixinLo
     @Override
     public List<String> getMixins(Set<String> loadedCoreMods) {
         List<String> mixins = new ArrayList<>(Arrays.asList("minecraft.CrashReportMixin",
-                "minecraft.ServerTickMixin"));
+                "minecraft.ServerTickMixin", "minecraft.NetworkManagerMixin"));
         if (FMLLaunchHandler.side().isClient()) mixins.add("minecraft.ClientTickMixin");
         for (String coremod : loadedCoreMods) {
             if (coremod.endsWith("Tweaker")) TracerBootstrap.tweaker(coremod);

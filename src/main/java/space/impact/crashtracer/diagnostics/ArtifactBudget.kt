@@ -10,7 +10,7 @@ class ArtifactBudget(private val directory: File, private val limit: Long) {
         // attempt must not consume the replacement's entire allowance.
         val temporaryName = file.name + ".partial"
         val used = directory.listFiles()?.filter {
-            it.name != temporaryName && it.isFile && !Files.isSymbolicLink(it.toPath())
+            it.name != temporaryName && !SupportBundle.isArchive(it.name) && it.isFile && !Files.isSymbolicLink(it.toPath())
         }?.sumOf { it.length() } ?: 0L
         return (limit - used + if (file.isFile) file.length() else 0L).also {
             if (it <= 0) throw IOException("Incident storage quota reached")

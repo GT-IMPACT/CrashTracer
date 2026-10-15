@@ -104,6 +104,24 @@ public final class TracerBootstrap {
         sink = value;
     }
 
+    public static synchronized File incidentFor(Throwable error) {
+        if (error == null) return null;
+        for (Throwable value : related(error)) for (SeenError recorded : seen) {
+            if (recorded.error.get() == value && recorded.incident.isDirectory()) return recorded.incident;
+        }
+        return null;
+    }
+
+    public static synchronized void linkMinecraftReport(Throwable error, File file) {
+        try {
+            File incident = incidentFor(error);
+            if (incident == null || file == null || !file.isFile() || Files.isSymbolicLink(file.toPath())) return;
+            File expected = new File(session.getParentFile().getParentFile().getParentFile(), "crash-reports");
+            if (!file.getCanonicalFile().getParentFile().equals(expected.getAbsoluteFile()) || file.getName().length() > 200) return;
+            write(new File(incident, "minecraft-report-name.txt"), file.getName());
+        } catch (Throwable ignored) {}
+    }
+
     public static synchronized void launchFailure(Throwable error) {
         if (error == null) return;
         lastLaunchFailure = new WeakReference<>(error);
@@ -182,6 +200,8 @@ public final class TracerBootstrap {
             else if (related.stream().anyMatch(value -> value == existing)) {
                 event("DUPLICATE", recorded.incident.getName(), source, "LINKED");
                 if (recorded.sources.size() < 16 && recorded.sources.add(source)) {
+                    // Once compacted, duplicate observations remain in session events; do not recreate raw files.
+                    if (new File(recorded.incident, "share/crashtracer-" + recorded.incident.getName() + ".zip").isFile()) return;
                     String observation = "{\"source\":" + EarlyJson.quote(source) + ",\"timestamp\":" + System.currentTimeMillis() + "}\n";
                     if (usedBytes(recorded.incident) + observation.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > options.maxReportBytes) return;
                     try (Writer writer = new OutputStreamWriter(new FileOutputStream(new File(recorded.incident, "sources.jsonl"), true), "UTF-8")) {
@@ -278,7 +298,8 @@ public final class TracerBootstrap {
     private static long usedBytes(File directory) {
         long size = 0;
         File[] files = directory.listFiles();
-        if (files != null) for (File file : files) if (file.isFile() && !Files.isSymbolicLink(file.toPath())) size += file.length();
+        if (files != null) for (File file : files) if (file.isFile() && !file.getName().endsWith(".zip")
+                && !file.getName().endsWith(".zip.partial") && !Files.isSymbolicLink(file.toPath())) size += file.length();
         return size;
     }
 

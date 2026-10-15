@@ -19,8 +19,7 @@ object AnalyzerMain {
         val config = (if (File(root, "config.json").isFile) TracerConfig.load(root) else TracerConfig()).copy(maxPendingReports = 4096)
         val groups = PendingAnalysis.process(input, config, mappings, "--force" in args)
         val index = mapOf("schemaVersion" to 1, "groups" to groups)
-        if (File(input, "report.json").isFile || File(input, "early.json").isFile) ArtifactBudget(input, config.maxReportBytes).json("analysis-index.json", index)
-        else JsonFiles.write(File(input, "analysis-index.json"), index)
-        println("Indexed ${groups.values.sumOf { it.size }} incidents in ${groups.size} groups. Results are saved beside each report.")
+        JsonFiles.write(File(if (SupportBundle.hasReport(input)) input.parentFile else input, "analysis-index.json"), index)
+        println("Indexed ${groups.values.sumOf { it.size }} incidents in ${groups.size} groups. Results are saved inside each incident ZIP.")
     }
 }

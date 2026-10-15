@@ -7,6 +7,12 @@ import space.impact.crashtracer.bootstrap.TracerBootstrap
 import space.impact.crashtracer.bootstrap.TransformerTrace
 
 object ContextCollector {
+    fun language(): Map<String, String> = try {
+        if (cpw.mods.fml.relauncher.FMLLaunchHandler.side().isClient)
+            mapOf("client.language" to space.impact.crashtracer.client.ClientLanguage.current().take(32))
+        else emptyMap()
+    } catch (_: Throwable) { emptyMap() }
+
     fun collect(phase: String): ContextSnapshot {
         val limitations = mutableListOf<String>()
         val mods = try {
@@ -42,6 +48,7 @@ object ContextCollector {
             "osArch" to System.getProperty("os.arch", "unknown"),
             "memoryArguments" to memoryFlags.joinToString(" "),
         )
+        environment.putAll(language())
         val coremods = TracerBootstrap.coremods().map { "${it.key} @ ${it.value}" }
         val tweakers = try {
             (TracerBootstrap.tweakers() + listOf("TweakClasses", "Tweaks").flatMap { key ->

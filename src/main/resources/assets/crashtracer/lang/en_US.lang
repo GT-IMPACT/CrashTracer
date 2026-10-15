@@ -1,0 +1,10 @@
+crashtracer.language=en
+crashtracer.gui.send=Send the ZIP to your modpack developer.
+crashtracer.gui.report=Open Minecraft crash report
+crashtracer.gui.quit=Quit game
+crashtracer.gui.title=Crash Tracer — crash summary
+crashtracer.gui.preparing=Preparing ZIP...
+crashtracer.gui.open=Open archive folder
+crashtracer.gui.retry=Retry creating ZIP
+crashtracer.gui.wait=Collecting the report and a short explanation...
+crashtracer.gui.folderFailed=Could not open folder:

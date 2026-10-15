@@ -1,0 +1,10 @@
+crashtracer.language=ru
+crashtracer.gui.send=Отправьте ZIP разработчику сборки.
+crashtracer.gui.report=Открыть обычный crash-report
+crashtracer.gui.quit=Выйти из игры
+crashtracer.gui.title=Crash Tracer — что произошло
+crashtracer.gui.preparing=Готовим ZIP...
+crashtracer.gui.open=Открыть папку с архивом
+crashtracer.gui.retry=Повторить сборку ZIP
+crashtracer.gui.wait=Собираем отчёт и короткое объяснение...
+crashtracer.gui.folderFailed=Не удалось открыть папку:

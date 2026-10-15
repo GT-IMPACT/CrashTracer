@@ -21,7 +21,7 @@ impactMod {
     injectGenerics.set(true)
     usesMixins.set(true)
     coreModClass.set("mixinplugin.TracerEarlyMixins")
-    mixinConfigs.set(listOf("mixins.crashtracer.fml.json", "mixins.crashtracer.json"))
+    mixinConfigs.set(listOf("mixins.crashtracer.fml.json", "mixins.crashtracer.gui.json", "mixins.crashtracer.json"))
     mixinRefmap.set("mixins.crashtracer.refmap.json")
 }
 
@@ -51,7 +51,7 @@ val analyzerJar = tasks.register<ShadowJar>("analyzerJar") {
     archiveClassifier.set("standalone")
     from(sourceSets.main.get().output) {
         include("space/impact/crashtracer/cli/**", "space/impact/crashtracer/diagnostics/**")
-        exclude("**/TracerRuntime*", "**/ContextCollector*", "**/ForensicsCollector*", "**/RuntimeEvents*", "**/Watchdog*", "**/BetterCrashesIntegration*", "**/LogCapture*")
+        exclude("**/TracerRuntime*", "**/ContextCollector*", "**/ForensicsCollector*", "**/RuntimeEvents*", "**/Watchdog*", "**/BetterCrashesIntegration*", "**/LogCapture*", "**/InteractionCapture*")
     }
     configurations = listOf(analyzerRuntime)
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
@@ -92,6 +92,9 @@ if (clientSmokeEnabled) {
         classpath(clientSmokeJar)
     }
     tasks.named<RunMinecraftTask>("runObfClient") { dependsOn(reobfClientSmoke) }
+    for (task in listOf("runClient", "runObfClient")) tasks.named<RunMinecraftTask>(task) {
+        providers.gradleProperty("clientSmokeScenario").orNull?.let { systemProperty("crashtracer.clientSmoke", it) }
+    }
     tasks.named<Copy>("prepareObfModsFolder") { from(reobfClientSmoke) }
 }
 

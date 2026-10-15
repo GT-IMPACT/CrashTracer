@@ -10,6 +10,10 @@ class LocalReportWriter(private val maxBytes: Long = 16L * 1024 * 1024) : Report
         budget.json("transformers.json", report.context.transformers)
         budget.json("mixins.json", report.forensics ?: ForensicsSnapshot(emptyList(), emptyList(), listOf("Unavailable")))
         budget.json("memory.json", report.memory)
+        report.interaction?.let {
+            budget.json("interaction.json", it)
+            budget.text("interaction.txt") { writer -> writer.write(InteractionDetails.text(it)) }
+        }
         budget.text("threads.txt") { writer ->
             report.threads.forEach { thread ->
                 writer.append("\"${thread.name}\" id=${thread.id} ${thread.state} deadlocked=${thread.deadlocked}\n")
@@ -30,6 +34,7 @@ class LocalReportWriter(private val maxBytes: Long = 16L * 1024 * 1024) : Report
             writer.append("Incident: ${report.incidentId}\nSession: ${report.sessionId}\n")
             writer.append("Phase: ${report.context.phase}\nSource: ${report.source}\n")
             writer.append("Description: ${report.description}\nThread: ${report.thread}\n")
+            if (report.interaction != null) writer.append("Player interaction: see interaction.txt / interaction.json (before processing and at failure).\n")
             val root = report.exceptions.nodes.first()
             writer.append("Exception: ${root.type}: ${root.message.orEmpty()}\n\n")
             val cause = report.exceptions.rootCause?.let { report.exceptions.nodes[it] }
